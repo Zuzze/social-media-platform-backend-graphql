@@ -1,8 +1,9 @@
-# Social Media Platform Backend
+# Social Media Platform Backend GraphQL
 
-This repository includes basic REST template for Social Media Platform
+This repository includes basic GraphQL template for Social Media Platform
 
 ## Features:
+
 - Feed
 - View post
 - Edit post
@@ -13,7 +14,9 @@ This repository includes basic REST template for Social Media Platform
 - Logout
 
 ## Tools used
+
 - `mongoose` - Library for NoSQL database MongoDB
 - `bcrypt` - password encryption
 - `multer` - file upload
-- `JWT (JSON Web Token)` to authenticate REST requests
+- `JWT (JSON Web Token)` to authenticate requests
+- `express-graphql` to handle GraphQL requests
