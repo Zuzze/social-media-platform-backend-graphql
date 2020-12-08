@@ -83,6 +83,18 @@ app.use((error, req, res, next) => {
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(result => {
-    app.listen(8080);
+    const server = app.listen(8080);
+
+    // Setup websockets
+    const options = {
+      cors: {
+        origin: "http://localhost:3000",
+        methods: ["GET", "POST"]
+      }
+    };
+    const io = require("./socket").init(server, options);
+    io.on("connection", socket => {
+      console.log("client connected");
+    });
   })
   .catch(err => console.log(err));

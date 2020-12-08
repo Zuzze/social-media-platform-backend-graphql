@@ -1,6 +1,6 @@
 # Social Media Platform Backend GraphQL
 
-This repository includes basic GraphQL template for Social Media Platform
+This repository includes basic GraphQL template for Social Media Platform. Posts are updated realtime using websockets.
 
 ## Features:
 
@@ -15,8 +15,10 @@ This repository includes basic GraphQL template for Social Media Platform
 
 ## Tools used
 
-- `mongoose` - Library for NoSQL database MongoDB
-- `bcrypt` - password encryption
-- `multer` - file upload
-- `JWT (JSON Web Token)` to authenticate requests
-- `express-graphql` to handle GraphQL requests
+- `mongoDB` - NoSQL database
+- `mongoose` - Library for MongoDB to make working with mongoDB easier
+- `bcrypt` - password encryption for user passwords
+- `multer` - upload files to posts
+- `JWT (JSON Web Token)` - authenticate requests
+- `express-graphql` - handle GraphQL requests
+- `socket.io` - to trigger update on client via websockets when new posts have been added to backend

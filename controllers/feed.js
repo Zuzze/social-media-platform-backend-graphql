@@ -3,10 +3,11 @@ const path = require("path");
 
 const { validationResult } = require("express-validator/check");
 
+const io = require("../socket");
 const Post = require("../models/post");
 const User = require("../models/user");
 
-const POSTS_PER_PAGE = 2;
+const POSTS_PER_PAGE = 5;
 
 exports.getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
@@ -14,8 +15,10 @@ exports.getPosts = async (req, res, next) => {
     const totalItems = await Post.find().countDocuments();
     // this syntax is for mongoose to implement pagination on backend
     // populate fetches also user details based on the userId in the post (creator)
+    // using sort({ createdAt: -1}) means sorting in descending order (latest post comes first)
     const posts = await Post.find()
       .populate("creator")
+      .sort({ createdAt: -1 })
       .skip((currentPage - 1) * POSTS_PER_PAGE)
       .limit(POSTS_PER_PAGE);
 
@@ -58,6 +61,10 @@ exports.createPost = async (req, res, next) => {
     const user = await User.findById(req.userId);
     user.posts.push(post);
     await user.save();
+    io.getIO().emit("posts", {
+      action: "create",
+      post: { ...post._doc, creator: { _id: req.userId, name: user.name } }
+    });
     res.status(201).json({
       message: "Post created successfully!",
       post: post,
@@ -73,7 +80,7 @@ exports.createPost = async (req, res, next) => {
 
 exports.getPost = async (req, res, next) => {
   const postId = req.params.postId;
-  const post = await Post.findById(postId).populate("creator");
+  const post = await Post.findById(postId);
   try {
     if (!post) {
       const error = new Error("Could not find post.");
@@ -109,13 +116,14 @@ exports.updatePost = async (req, res, next) => {
     throw error;
   }
   try {
-    const post = await Post.findById(postId);
+    // populate user data based on id on post to get more details
+    const post = await Post.findById(postId).populate("creator");
     if (!post) {
       const error = new Error("Could not find post.");
       error.statusCode = 404;
       throw error;
     }
-    if (post.creator.toString() !== req.userId) {
+    if (post.creator._id.toString() !== req.userId) {
       const error = new Error("Not authorized!");
       error.statusCode = 403;
       throw error;
@@ -127,6 +135,9 @@ exports.updatePost = async (req, res, next) => {
     post.imageUrl = imageUrl;
     post.content = content;
     const result = await post.save();
+    // emit websocket event
+    io.getIO().emit("posts", { action: "update", post: result });
+    // success response
     res.status(200).json({ message: "Post updated!", post: result });
   } catch (err) {
     if (!err.statusCode) {
@@ -155,11 +166,14 @@ exports.deletePost = async (req, res, next) => {
     clearImage(post.imageUrl);
     await Post.findByIdAndRemove(postId);
 
-    // update also user model by using mongoose pull() so that post is removed from User
     const user = await User.findById(req.userId);
+    // update also user model in db by using mongoose pull() so that post is removed from User
     user.posts.pull(postId);
+    // save changes to db
     await user.save();
-
+    // emit websocket event
+    io.getIO().emit("posts", { action: "delete", post: postId });
+    // success response
     res.status(200).json({ message: "Deleted post." });
   } catch (err) {
     if (!err.statusCode) {
