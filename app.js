@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs");
+
 const dotEnv = require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -9,6 +9,7 @@ const { graphqlHTTP } = require("express-graphql");
 const graphqlSchema = require("./graphql/schema");
 const graphqlResolver = require("./graphql/resolvers");
 const auth = require("./middleware/auth");
+const { clearImage } = require("./util/file");
 
 // modules
 const feedRoutes = require("./routes/feed");
@@ -116,8 +117,13 @@ app.use((error, req, res, next) => {
   res.status(status).json({ message: message, data: data });
 });
 
+// Options given to connect are just silencing deprecation warnings, not necessary
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, {
+    useFindAndModify: false,
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
   .then(result => {
     const server = app.listen(8080);
 
@@ -134,8 +140,3 @@ mongoose
     });
   })
   .catch(err => console.log(err));
-
-const clearImage = filePath => {
-  filePath = path.join(__dirname, "..", filePath);
-  fs.unlink(filePath, err => console.log(err));
-};
