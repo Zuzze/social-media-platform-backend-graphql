@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const dotEnv = require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -7,6 +8,7 @@ const multer = require("multer");
 const { graphqlHTTP } = require("express-graphql");
 const graphqlSchema = require("./graphql/schema");
 const graphqlResolver = require("./graphql/resolvers");
+const auth = require("./middleware/auth");
 
 // modules
 const feedRoutes = require("./routes/feed");
@@ -64,6 +66,26 @@ app.use((req, res, next) => {
 app.use("/feed", feedRoutes);
 app.use("/auth", authRoutes);
 
+// Authentication middleware that checks JWT token validity
+app.use(auth);
+
+// handle image upload via REST that returns path that can be saved to graphql endpoint
+app.put("/post-image", (req, res, next) => {
+  if (!req.isAuth) {
+    throw new Error("Not authenticated");
+  }
+  if (!req.file) {
+    return res.status(200).json({ message: "No file provided" });
+  }
+  if (req.body.oldPath) {
+    // remove old path and delete old image
+    clearImage(req.body.oldPath);
+  }
+  return res
+    .status(201)
+    .json({ message: "File stored", filePath: req.file.path });
+});
+
 // GRAPHQL
 app.use(
   "/graphql",
@@ -112,3 +134,8 @@ mongoose
     });
   })
   .catch(err => console.log(err));
+
+const clearImage = filePath => {
+  filePath = path.join(__dirname, "..", filePath);
+  fs.unlink(filePath, err => console.log(err));
+};
