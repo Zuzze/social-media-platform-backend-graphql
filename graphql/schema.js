@@ -2,6 +2,10 @@ const { buildSchema } = require("graphql");
 
 /**
  * In GraphQL, type defines the query and schema defines the return type
+ * upvotes: [String]
+ * downvotes: [String]
+ * upvotePost(id: ID!): Post!
+ * downvotePost(id: ID!): Post!
  */
 module.exports = buildSchema(`
     type Post {

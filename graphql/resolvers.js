@@ -112,6 +112,8 @@ module.exports = {
       content: postInput.content,
       imageUrl: postInput.imageUrl,
       creator: user
+      // upvotes: [], //array of user ids who have upvoted
+      // downvotes: [] //array of user ids who have downvoted
     });
 
     // mongoose model has access to save() to save post to db
@@ -252,6 +254,68 @@ module.exports = {
     user.posts.pull(id);
     await user.save();
     return true;
+  },
+  upvotePost: async function({ id }, req) {
+    if (!req.isAuth) {
+      const error = new Error("Not authenticated!");
+      error.code = 401;
+      throw error;
+    }
+    const post = await Post.findById(id);
+    if (!post) {
+      const error = new Error("No post with given id found");
+      error.code = 404;
+      throw error;
+    }
+    if (post.creator.toString() === req.userId.toString()) {
+      const error = new Error("You cannot vote your own post!");
+      error.code = 403;
+      throw error;
+    }
+
+    const post = await Post.findById(id);
+    // if user has not yet voted, he/she can
+    if (post.upvotes.indexOf(req.userId.toString()) < 0) {
+      post.upvotes.push(req.userId.toString());
+    }
+    const updatedPost = await post.save();
+    return {
+      ...updatedPost._doc,
+      _id: updatedPost._id.toString(),
+      createdAt: updatedPost.createdAt.toISOString(),
+      updatedAt: updatedPost.updatedAt.toISOString()
+    };
+  },
+  downvotePost: async function({ id }, req) {
+    if (!req.isAuth) {
+      const error = new Error("Not authenticated!");
+      error.code = 401;
+      throw error;
+    }
+    const post = await Post.findById(id);
+    if (!post) {
+      const error = new Error("No post with given id found");
+      error.code = 404;
+      throw error;
+    }
+    if (post.creator.toString() === req.userId.toString()) {
+      const error = new Error("You cannot vote your own post!");
+      error.code = 403;
+      throw error;
+    }
+
+    const post = await Post.findById(id);
+    // if user has not yet voted, he/she can
+    if (post.downvotes.indexOf(req.userId.toString()) < 0) {
+      post.downvotes.push(req.userId.toString());
+    }
+    const updatedPost = await post.save();
+    return {
+      ...updatedPost._doc,
+      _id: updatedPost._id.toString(),
+      createdAt: updatedPost.createdAt.toISOString(),
+      updatedAt: updatedPost.updatedAt.toISOString()
+    };
   },
   /** Returns user data by Id  */
   user: async function(args, req) {
